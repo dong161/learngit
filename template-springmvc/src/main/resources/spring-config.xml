@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 查找最新的schemaLocation 访问 http://www.springframework.org/schema/ -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/aop   
+        http://www.springframework.org/schema/aop/spring-aop-4.0.xsd   
+        http://www.springframework.org/schema/beans   
+        http://www.springframework.org/schema/beans/spring-beans-4.0.xsd   
+        http://www.springframework.org/schema/context   
+        http://www.springframework.org/schema/context/spring-context-4.0.xsd   
+        http://www.springframework.org/schema/mvc   
+        http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd   
+        http://www.springframework.org/schema/tx   
+        http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+
+    <!-- ////////////////////////////////////////////////////////////////////////// -->    
+	<!-- Root Context: defines shared resources visible to all other web components --> 
+	<!-- ////////////////////////////////////////////////////////////////////////// -->	
+
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- ///////////////////////////////////////  Import   //////////////////////////////////////////  -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->	
+	<import resource="spring-config-shiro.xml"/>	       
+	
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- /////////////////////////////////////// 配置信息   ///////////////////////////////////////////  -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<context:property-placeholder
+		location="classpath:db.properties,classpath:common-global.properties" />
+
+
+	<bean id="commonsConfigs"
+		class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="locations">
+			<list>
+				<value>classpath:common-global.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="staticMethod" value="com.kanq.qd.use.util.PropertiesUtil.setProp" />
+		<property name="arguments" ref="commonsConfigs" />
+	</bean>	
+	
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- //////////////////////////////////组件扫描, 排除@Controller /////////////////////////////////  -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<context:component-scan base-package="com.kanq.train">
+		<context:exclude-filter type="annotation"
+			expression="org.springframework.stereotype.Controller" />
+	</context:component-scan>	
+	
+	
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- //////////////////////////////// 附件上传与下载  ////////////////////////////////////////////// -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- 
+		<bean id="affixManager" class="com.kanq.affix.support.NativeAffixOperaterManager">
+			<constructor-arg name="configFilePathArugment">
+				<value>kanq-affix-config.xml</value>
+			</constructor-arg>
+		</bean>
+	-->	
+
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- //////////////////////////////// 快速开发组件 //////////////////////////////////////////////// -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->	
+	<!-- 引入二方库 , 所以要求我们创建的Service文件名形如 xxService.xml -->
+	<bean id="serviceFactory" class="com.kanq.qd.use.XMLSpringServiceFactory">
+		<constructor-arg name="serviceXmlFilePath">
+			<value>service-default.xml</value>
+		</constructor-arg>
+		<property name="serviceLocations" value="classpath*:config/service/**/*Service.xml" />
+	</bean>
+
+	<bean id="coreDao" class="com.kanq.qd.use.dao.impl.MyBatisDaoImpl">
+		<property name="xmlServiceFactory" ref="serviceFactory" />
+	</bean>
+
+	<bean name="coreService" class="com.kanq.qd.use.service.impl.CoreServiceImpl">
+		<property name="sFactory" ref="serviceFactory"></property>
+		<property name="coreDao" ref="coreDao" />
+	</bean>
+
+	<bean id="baseService" class="com.kanq.qd.use.service.impl.BaseServiceImpl">
+		<property name="coreDao" ref="coreDao" />
+	</bean>
+	
+	<!-- ServiceInvoker -->
+	<bean
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="staticMethod"
+			value="com.kanq.qd.use.support.ServiceInvoker.setRequiredArguments" />
+		<property name="arguments">
+			<list>
+				<ref bean="serviceFactory"/>
+				<ref bean="coreService"/>
+			</list>
+		</property>
+	</bean>	
+	
+	
+	<!-- 为Spring容器中实现了ISConfigAware接口的对象注入SConfiguration实例 -->
+	<bean id ="sConfigAWareBeanPostProcessor"
+		class="com.kanq.qd.use.support.SConfigAWareBeanPostProcessor">		
+	</bean>
+	
+	<!-- 获取Spring根容器, 供代码中使用 -->
+	<bean id ="springBeanFactory"
+		class="com.kanq.qd.use.util.SpringBeanFactory">		
+	</bean>
+	
+	<!-- Mybatis热备 -->
+	<bean id="mybatisHotDeploySpringApplicationListener" class="com.kanq.extend.mybatis.hotdeploy.MybatisHotDeploySpringApplicationListener">
+	</bean>		
+
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- //////////////////////////////// 连接池配置 ////////////////////////////////////////////////// -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<bean id="druidLogfilter" class="com.alibaba.druid.filter.logging.Slf4jLogFilter">
+		<property name="connectionLogEnabled" value="false" />
+		<property name="statementLogEnabled" value="false" />
+		<property name="resultSetLogEnabled" value="false" />
+		<property name="statementExecutableSqlLogEnable" value="true" />
+	</bean>	
+
+	<!-- 通用的DataSource属性 -->
+	<bean id="dataSourceBasic" abstract="true">
+		<!-- 池启动时创建的连接数量 -->
+		<property value="30" name="initialSize" />
+		<!-- 同一时间可以从池分配的最多连接数量。设置为0时表示无限制。 -->
+		<property value="500" name="maxActive" />
+		<!-- 在不新建连接的条件下，池中保持空闲的最少连接数。 -->
+		<property value="0" name="minIdle" />
+		<!-- 多少秒检查一次连接池中空闲的链接。 -->
+		<property value="60000" name="minEvictableIdleTimeMillis" />
+		<!-- 把空闲超过多少毫秒的链接断开。 -->
+		<property value="10000" name="timeBetweenEvictionRunsMillis" />
+		<!-- 设置自动回收超时连接 -->
+		<property value="false" name="removeAbandoned" />
+		<!-- 自动回收超时时间(以秒数为单位) -->
+		<property value="200" name="removeAbandonedTimeout" />
+		<!-- 设置在自动回收超时连接的时候打印连接的超时错误 -->
+		<property value="true" name="logAbandoned" />
+		<!-- 等待超时以毫秒为单位，在抛出异常之前，池等待连接被回收的最长时间（当没有可用连接时）。设置为-1表示无限等待。 -->
+		<property value="60000" name="maxWait" />
+		<property value="SELECT sysdate FROM dual" name="validationQuery" />
+		<property name="proxyFilters">
+			<list>
+				<ref bean="druidLogfilter" />
+			</list>
+		</property>
+	</bean>
+
+	<!--  init-method="init" 会导致DataSource立即init, 这不一定使我们所需要的 -->
+	<!-- 另外一种配置方式是使用 DruidDataSourceFactory.createDataSource方法 -->
+	<bean id="MAINDataSource" class="com.alibaba.druid.pool.DruidDataSource"
+		destroy-method="close" parent="dataSourceBasic">
+		<property name="driverClassName" value="${main.db.driverClassName}" />
+		<property name="url" value="${main.db.url}" />
+		<property name="username" value="${main.db.username}" />
+		<property name="password" value="${main.db.password}" />
+	</bean>
+
+	<bean id="SDDataSource" class="com.alibaba.druid.pool.DruidDataSource"
+		destroy-method="close" parent="dataSourceBasic">
+		<property name="driverClassName" value="${sd.db.driverClassName}" />
+		<property name="url" value="${sd.db.url}" />
+		<property name="username" value="${sd.db.username}" />
+		<property name="password" value="${sd.db.password}" />
+	</bean>
+
+	<bean id="mainSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="MAINDataSource" />
+		<property name="configLocation" value="classpath:mybatis.xml" />
+		<property name="mapperLocations"
+			value="classpath*:config/mybatis/${dbtype}/**/*Mapper_${dbtype}.xml" />
+	</bean>
+
+	<!-- 辅库 -->
+	<bean id="sdSqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="SDDataSource" />
+		<property name="configLocation" value="classpath:mybatis.xml" />
+		<property name="mapperLocations"
+			value="classpath*:config/mybatis/${dbtype}/_slave/*Mapper_${dbtype}.xml" />
+	</bean>
+	
+	
+
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- ////////////////////////////// 连接池事务配置 //////////////////////////////////////////////// -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<aop:aspectj-autoproxy />
+
+	<bean id="sdTransactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="SDDataSource" />
+	</bean>
+
+	<bean id="mainTransactionManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="MAINDataSource" />
+	</bean>
+
+	<tx:advice id="sdTxAdvice" transaction-manager="sdTransactionManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="REQUIRED" rollback-for="Exception" />
+		</tx:attributes>
+	</tx:advice>
+
+	<tx:advice id="mainTxAdvice" transaction-manager="mainTransactionManager">
+		<tx:attributes>
+			<tx:method name="*" propagation="REQUIRED" rollback-for="Exception" />
+		</tx:attributes>
+	</tx:advice>	
+
+	<!-- com.kanq.qd.service.impl 也需要 -->
+	<aop:config expose-proxy="true" proxy-target-class="true">
+		<!-- 只对业务逻辑层实施事务 -->
+		<aop:advisor pointcut="execution(* com.kanq.train.service.impl.*.*(..))"
+			advice-ref="sdTxAdvice" />
+		<aop:advisor  pointcut="execution(* com.kanq.qd.use.service.impl.*.*(..))"
+			advice-ref="sdTxAdvice" />			
+	</aop:config>
+
+	<aop:config expose-proxy="true" proxy-target-class="true">
+		<!-- 只对业务逻辑层实施事务 -->
+		<aop:advisor pointcut="execution(* com.kanq.train.service.impl.*.*(..))"
+			advice-ref="mainTxAdvice" />
+		<aop:advisor pointcut="execution(* com.kanq.qd.use.service.impl.*.*(..))"
+			advice-ref="mainTxAdvice" />			
+	</aop:config>
+</beans>  

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- 默认的配置信息 -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<properties resource="common-global.properties">
+		 <!-- 每页的行数 -->
+		 <property name="pageCount" value="30" />
+		 <!-- 分页执行器 mybatis本身的分页是逻辑分页，数据量大的时候，会导致内存溢出，该分页执行器可以实现物理分页 -->
+		 <property name="pagerExecutor" value="com.kanq.qd.use.dao.page.OraclePagerExecutor" />
+ 
+		 <property name="qd.isDebug" value="true" />
+	</properties>
+	
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<settings>
+		<!-- 可用于实现多数据源;;必须有  -->
+		<setting name="sqlSessionFactorySelecter" value="com.kanq.qd.use.support.SqlSessionFactoryUtil"/>
+		
+		<!-- 给予第三方一个修改 Execute Context 的机会; 这里是将Session里的信息插入Service执行上下文 -->		
+		<setting name="executeContextModifier" value="com.kanq.train.support.ServiceExecuteContextModifier"/>	
+				
+		<!-- 是否启用Mybatis热备和Service热备 -->
+		<!-- Mybatis热备 在MybatisHotDeploySpringApplicationListener中实现 -->
+		<setting name="isDebug" value="${qd.isDebug}"/>
+		<setting name="monitorInterval" value="5"/>		
+		
+		<!-- 事件监听,Service/Action执行时的事件触发,目前只考虑了执行成功之后触发;暂未考虑执行失败,以及因为条件不满足而不执行的情况
+		<setting name="executeEventListener" value="cn.springmvc.controller.support.CustomExecuteEventListener4Action;cn.springmvc.controller.support.CustomExecuteEventListener4Service">
+		</setting>		
+		 -->	
+		 <setting name="buildEventListener" value="com.kanq.qd.core.builder.support.SConfigurationBuiledListener">
+		</setting>
+	</settings>	
+
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- 让spring帮忙
+	<services>		
+		<include resource="/service/service-affix.xml" />		
+	</services>
+	-->
+</configuration>

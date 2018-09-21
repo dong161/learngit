@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<service-config>
+    
+    <service id="TEST_SERVICE">
+		<action name="userLogin">
+			<property name="sqlId" value="testMapper.userLogin" />
+			<property name="sqlType" value="select" />
+			<property name="result" value="row" />
+			<property name="resultType" value="single"/>
+			<property name="isPage" value="false"/>
+		</action>
+	</service>	
+    
+</service-config>

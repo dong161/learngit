@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration PUBLIC  
+    "-//mybatis.org//DTD Config 3.0//EN"  
+    "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+
+	<properties resource="common-global.properties"></properties>
+
+	 <settings>
+	    <setting name="callSettersOnNulls" value="true"/>
+		<setting name="logImpl" value="SLF4J" />
+		<setting name="logPrefix" value="org.apache.ibatis." />
+		<!-- 
+			在向oracle插入数据时，mybatis3报Error setting null parameter. Most JDBC drivers require that the JdbcType must be specified for all nullable parameters，
+			是由于参数出现了null值,对于Mybatis,设置当JDBC类型为空值时,是要指定的值的，默认为OTHER，我们指定为NULL就好了（注意是大写的NULL）。 
+		 -->
+		<setting name="jdbcTypeForNull" value="NULL"/>  
+	 </settings>
+	 
+	 
+	 
+	<typeAliases>
+		<typeAlias type="com.kanq.extend.mybatis.LMap" alias="LMap"/>
+	</typeAliases>
+	
+	<typeHandlers>
+		<typeHandler handler="com.kanq.extend.mybatis.NullTypeHandler"/>
+	<!-- 
+		<typeHandler handler="com.kanq.extend.mybatis.OracleClobTypeHandler"/>
+	 -->		
+	</typeHandlers>
+
+	<!-- 分页功能 -->	
+	<plugins>
+		<plugin interceptor="com.kanq.qd.use.dao.page.PageInterceptor">
+			<property name="pageParameter" value="com.kanq.qd.use.dao.page.OraclePagerExecutor"/>
+		</plugin>
+	</plugins>
+
+ 
+ <!--  让spring帮忙
+ 	<mappers>
+		<mapper resource="/mybatis/oracle/affix/fjsc.xml" />
+		<mapper resource="/mybatis/oracle/affix/ywml.xml" />		
+	</mappers>
+-->	
+</configuration>

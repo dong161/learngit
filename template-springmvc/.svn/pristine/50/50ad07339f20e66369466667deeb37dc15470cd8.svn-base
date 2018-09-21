@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:util="http://www.springframework.org/schema/util" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.3.xsd
+       http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.3.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd">
+
+	<description>== kanq-upms ==</description>
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->	
+	<!-- /////////////////////////    DO NOT FORMAT THIS FILE                ///////////////////////// -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+
+	<!-- //////////////////////////////////////////////////////////////////////////////////////// -->
+    <!-- //////////////////        Shiro生命周期处理器         /////////////////////////////////////// -->
+    <!-- //////////////////////////////////////////////////////////////////////////////////////// -->       
+    <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+
+
+	<!-- //////////////////////////////////////////////////////////////////////////////////////// -->
+    <!-- //////////////////            缓存管理器                 /////////////////////////////////////// -->
+    <!-- //////////////////////////////////////////////////////////////////////////////////////// -->
+<!-- 
+    <bean id="cacheManager" class="com.kanq.train.shiro.cache.SpringCacheManagerWrapper">
+        <property name="cacheManager" ref="springCacheManager"/>
+    </bean>
+-->        
+	<!-- //////////////////////////////////////////////////////////////////////////////////////// -->
+    <!-- //////////////////            凭证匹配器                  /////////////////////////////////////// -->
+    <!-- //////////////////////////////////////////////////////////////////////////////////////// -->    
+<!-- 
+    <bean id="credentialsMatcher" class="com.github.zhangkaitao.shiro.chapter16.credentials.RetryLimitHashedCredentialsMatcher">
+        <constructor-arg ref="cacheManager"/>
+        <property name="hashAlgorithmName" value="md5"/>
+        <property name="hashIterations" value="2"/>
+        <property name="storedCredentialsHexEncoded" value="true"/>
+    </bean>
+-->
+
+	<!-- //////////////////////////////////////////////////////////////////////////////////////// -->
+    <!-- //////////////////                会话                    /////////////////////////////////////// -->
+    <!-- //////////////////////////////////////////////////////////////////////////////////////// -->
+    <!-- 会话ID生成器 -->
+ 	<bean id="sessionIdGenerator" class="org.apache.shiro.session.mgt.eis.JavaUuidSessionIdGenerator"/>
+
+    <!-- 会话Cookie模板 -->
+    <bean id="sessionIdCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+    	<!-- session在cookie中对应的id -->
+        <constructor-arg value="${upms.session.id}"/>
+        <property name="httpOnly" value="true"/>
+        <property name="maxAge" value="-1"/>
+    </bean>
+    
+    <!-- 会话DAO -->
+    <bean id="sessionDAO" class="org.apache.shiro.session.mgt.eis.EnterpriseCacheSessionDAO">
+        <property name="activeSessionsCacheName" value="shiro-activeSessionCache"/>
+        <property name="sessionIdGenerator" ref="sessionIdGenerator"/>
+    </bean>
+
+    <!-- 会话验证调度器 -->
+    <bean id="sessionValidationScheduler" class="org.apache.shiro.session.mgt.quartz.QuartzSessionValidationScheduler">
+        <property name="sessionValidationInterval" value="1800000"/>
+        <property name="sessionManager" ref="sessionManager"/>
+    </bean>  
+    
+    <!-- 会话管理器 -->
+    <!-- 
+		Shiro 提供了三个默认实现(《跟开涛学Shiro》 ~ 第十章 ~ P94)：
+			1. DefaultSessionManager：DefaultSecurityManager使用的默认实现，用于JavaSE 环境；
+			2. ServletContainerSessionManager：DefaultWebSecurityManager使用的默认实现，用于Web环境，其直接使用Servlet 容器的会话；
+			3. DefaultWebSessionManager ： 用于Web 环境的实现， 可以替代ServletContainerSessionManager，自己维护着会话，直接废弃了Servlet容器的会话管理。    
+     -->
+    <bean id="sessionManager" class="org.apache.shiro.web.session.mgt.DefaultWebSessionManager">
+        <!-- 全局session超时时间 -->
+        <property name="globalSessionTimeout" value="${upms.session.timeout}"/>
+        <property name="deleteInvalidSessions" value="true"/>
+        <property name="sessionValidationSchedulerEnabled" value="true"/>
+        <property name="sessionValidationScheduler" ref="sessionValidationScheduler"/>
+        <property name="sessionDAO" ref="sessionDAO"/>
+        <property name="sessionIdCookieEnabled" value="true"/>
+        <property name="sessionIdCookie" ref="sessionIdCookie"/>
+    </bean>      
+
+	<!-- //////////////////////////////////////////////////////////////////////////////////////// -->
+    <!-- //////////////////             rememberMe               //////////////////////////////// -->
+    <!-- //////////////////////////////////////////////////////////////////////////////////////// -->    
+    <bean id="rememberMeCookie" class="org.apache.shiro.web.servlet.SimpleCookie">
+        <constructor-arg value="rememberMe"/>
+        <property name="httpOnly" value="true"/>
+        <property name="maxAge" value="2592000"/><!-- 30天 -->
+    </bean>
+    
+    <!-- rememberMe管理器 -->
+    <bean id="rememberMeManager" class="org.apache.shiro.web.mgt.CookieRememberMeManager">
+        <!-- rememberMe cookie加密的密钥 建议每个项目都不一样 默认AES算法 密钥长度（128 256 512 位）-->
+        <property name="cipherKey"
+                  value="#{T(org.apache.shiro.codec.Base64).decode('4AvVhmFLUs0KTA3Kprsdag==')}"/>
+        <property name="cookie" ref="rememberMeCookie"/>
+    </bean>        
+
+	<!-- //////////////////////////////////////////////////////////////////////////////////////// -->
+    <!-- //////////////////            安全管理器                  /////////////////////////////////////// -->
+    <!-- //////////////////////////////////////////////////////////////////////////////////////// -->
+
+    <!-- realm实现，继承自AuthorizingRealm -->
+	<bean id="upmsRealm" class="com.kanq.train.shiro.realm.UpmsRealm">
+		<!--<property name="credentialsMatcher" ref="credentialsMatcher" /> -->
+		<!--<property name="cachingEnabled" value="false" /> -->
+        <!--<property name="authenticationCachingEnabled" value="true"/>-->
+        <!--<property name="authenticationCacheName" value="authenticationCache"/>-->
+        <!--<property name="authorizationCachingEnabled" value="true"/>-->
+        <!--<property name="authorizationCacheName" value="authorizationCache"/>-->
+	</bean> 
+
+    <!-- 安全管理器  -->
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realms">
+			<list>
+				<ref bean="upmsRealm" />
+			</list>
+		</property>
+		<!-- 
+		<property name="sessionManager" ref="sessionManager" />
+		<property name="rememberMeManager" ref="rememberMeManager" />
+		<property name="cacheManager" ref="cacheManager" />
+		 -->
+	</bean>
+	
+ 	<!-- 相当于调用SecurityUtils.setSecurityManager(securityManager) -->
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="staticMethod" value="org.apache.shiro.SecurityUtils.setSecurityManager"/>
+        <property name="arguments" ref="securityManager"/>
+    </bean>	
+    
+    
+	<!-- //////////////////////////////////////////////////////////////////////////////////////// -->
+    <!-- //////////////////            Filter             /////////////////////////////////////// -->
+    <!-- //////////////////////////////////////////////////////////////////////////////////////// -->    
+        <!-- 基于Form表单的身份验证过滤器 -->
+    <bean id="formAuthenticationFilter" class="com.kanq.train.shiro.filter.KanqFormAuthenticationFilter">
+        <property name="usernameParam" value="username"/>
+        <property name="passwordParam" value="password"/>
+        <property name="rememberMeParam" value="rememberMe"/>
+        <property name="loginUrl" value="${upms.loginUrl}"/>
+    </bean>	
+	
+	<!-- 当前登录的已通过验证的用户信息收集 -->
+	<bean id="userInfoFilter" class="com.kanq.train.shiro.filter.UserInfoShiroFilter"></bean>
+	
+	<!-- 用户~页面权限校验 -->
+	<bean id="moduleAuthorizationFilter" class="com.kanq.train.shiro.filter.KanqModuleAuthorizationFilter">
+		<property name="unauthorizedUrl" value="${upms.unauthorizedUrl}" />
+		<property name="baseService" ref="baseService" />
+	</bean>
+	
+		
+
+    <!-- Shiro主过滤器本身功能十分强大,其强大之处就在于它支持任何基于URL路径表达式的、自定义的过滤器的执行 -->  
+    <!-- Web应用中,Shiro可控制的Web请求必须经过Shiro主过滤器的拦截,Shiro对基于Spring的Web应用提供了完美的支持 -->  
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">  
+        <!-- Shiro的核心安全接口,这个属性是必须用户自己设置的 -->  
+        <property name="securityManager" ref="securityManager"/>  
+        <!-- 要求登录时的链接(可根据项目的URL进行替换),非必须的属性,默认会自动寻找Web工程根目录下的"/login.jsp"页面 -->  
+        <property name="loginUrl" value="${upms.loginUrl}"/>  
+        <!-- 登录成功后要跳转的连接(本例中此属性用不到,因为登录成功后的处理逻辑在LoginController里硬编码为main.jsp了) -->  
+        <property name="successUrl" value="${upms.successUrl}"/>  
+        <!-- 用户访问未对其授权的资源时,所显示的连接 -->  
+        <!-- 若想更明显的测试此属性可以修改它的值,如unauthor.jsp -->  
+        <property name="unauthorizedUrl" value="${upms.unauthorizedUrl}"/> 
+        <property name="filters">
+            <util:map>
+                <entry key="authc" value-ref="formAuthenticationFilter"/>
+                <entry key="userInfo" value-ref="userInfoFilter"/>
+                <entry key="module" value-ref="moduleAuthorizationFilter"/>
+                
+            </util:map>
+        </property>         
+        <!-- Shiro连接约束配置,即过滤链的定义 -->  
+        <!-- 各个过滤连的作用http://blog.csdn.net/jadyer/article/details/12172839 -->
+        <!-- 前缀URL pattern : Ant路径通配符(http://jinnianshilongnian.iteye.com/blog/1416322)			
+			   /admins/**=anon             无参,表示可匿名使用,可以理解为匿名用户或游客 
+			   /admins/user/**=authc       无参,表示需认证才能使用 
+			   /admins/user/**=authcBasic  无参,表示httpBasic认证 
+			   /admins/user/**=user        无参,表示必须存在用户,当登入操作时不做检查 
+			   /admins/user/**=ssl         无参,表示安全的URL请求,协议为https 
+			   /admins/user/**=perms[user:add:*] 
+			       参数可写多个,多参时必须加上引号,且参数之间用逗号分割,如/admins/user/**=perms["user:add:*,user:modify:*"] 
+			       当有多个参数时必须每个参数都通过才算通过,相当于isPermitedAll()方法 
+			   /admins/user/**=port[8081] 
+			       当请求的URL端口不是8081时,跳转到schemal://serverName:8081?queryString 
+			       其中schmal是协议http或https等,serverName是你访问的Host,8081是Port端口,queryString是你访问的URL里的?后面的参数 
+			   /admins/user/**=rest[user] 
+			       根据请求的方法,相当于/admins/user/**=perms[user:method],其中method为post,get,delete等 
+			   /admins/user/**=roles[admin] 
+			       参数可写多个,多个时必须加上引号,且参数之间用逗号分割,如/admins/user/**=roles["admin,guest"] 
+			       当有多个参数时必须每个参数都通过才算通过,相当于hasAllRoles()方法                 
+         -->  
+        <!-- 下面value值的第一个'/'代表的路径是相对于HttpServletRequest.getContextPath()的值来的 -->  
+        <!-- anon：它对应的过滤器里面是空的,什么都没做,这里.do和.jsp后面的*表示参数,比方说login.jsp?main这种 -->  
+        <!-- authc：该过滤器下的页面必须验证后才能访问,它是Shiro内置的一个拦截器org.apache.shiro.web.filter.authc.FormAuthenticationFilter -->
+        <!-- shiro_ssm中的ShiroManagerImpl类, 从配置文件中读取 -->  
+        <property name="filterChainDefinitions">
+            <value>
+<!--           
+                /login.html = anon
+            	/login/login.do = anon
+            	/controller/core/request.do = authc, userInfo
+				/*/*.do = authc, userInfo
+				/unauthorized.html = anon
+				/**.html = authc
+--> 				
+				/** = anon
+				
+            </value>  
+        </property>  
+    </bean>
+    
+</beans>

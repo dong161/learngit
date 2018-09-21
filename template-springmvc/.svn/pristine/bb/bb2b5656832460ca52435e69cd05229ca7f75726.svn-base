@@ -1,0 +1,9 @@
+dbtype=oracle
+main.db.driverClassName=oracle.jdbc.driver.OracleDriver
+main.db.url=jdbc:oracle:thin:@172.16.1.29:1521:ORCL
+main.db.username=BDCDJ
+main.db.password=BDCDJ
+sd.db.driverClassName=oracle.jdbc.driver.OracleDriver
+sd.db.url=jdbc:oracle:thin:@172.16.1.29:1521:ORCL
+sd.db.username=BDCDJ
+sd.db.password=BDCDJ

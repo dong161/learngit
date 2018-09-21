@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="userMapper">
+    
+    <!-- 查询所有用户信息 -->
+    <select id="userinfo" parameterType="map" resultType="map">
+		SELECT
+			US_NAME,
+			US_IDENT,
+			US_CODE,
+			US_PWORD,
+			US_DROP,
+			US_DATE
+		FROM
+			OA2_USER
+			<where>
+				<if test="username!=null and username!=''">
+					and US_NAME like '%${username}%'
+				</if>
+				<if test="code!=null and code!=''">
+					and US_CODE like '%${code}%'
+				</if>
+			</where>
+    </select>
+    <delete id="delbyid" parameterType="String">   	
+    	DELETE
+    	
+    	FROM
+    		OA2_USER
+    	WHERE	
+    	US_IDENT='${value}'
+    </delete>
+    <update id="updatebyid" parameterType="map">
+    	UPDATE
+    		OA2_USER
+    	SET
+    		${field}='${value}'
+    	WHERE
+    		US_IDENT='${id}'
+    </update>
+    <insert id="add" parameterType="map">
+    	INSERT INTO
+    		OA2_USER
+    			(US_NAME,US_IDENT,US_CODE,US_PWORD,US_DROP,US_DATE)
+			VALUES
+				('${name}','${id}','${code}','${password}','${altertime}','${createtime}')	
+    </insert>
+</mapper> 

@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- OFF TRACE -->
+<!-- 如果要启用log4j2自身的调试, 将下面的OFF修改为TRACE -->
+<!-- 如果要启用SQL调试, 将Loggers节点下的 root节点的level属性由INFO修改为DEBUG即可 -->
+<Configuration status="TRACE" monitorInterval="5">
+
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- //////////////////////////////// properties ///////////////////////////////////////////////// -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->	
+	<properties>
+		<property name="logPath">${sys:catalina.home}/xmlogs/SDTJFXGXFW_logs </property>
+		<property name="desktopPath">C:/Users/LQ/Desktop/</property>
+		
+		<!-- 日志级别 -->
+		<property name="level_debug">debug</property>
+		<property name="level_info">info</property>
+		<property name="level_warn">warn</property>
+		<property name="level_error">error</property>		
+		
+        <!-- 日志格式
+        		1. 一条日志由2行组成，第1行为日志头，第2行为日志内容
+        		2. 日志头由;分割
+					1. 第一段：日志级别，分为：Fatal(灾难)、Error（错误）、Warn（警告）Info（信息）、Debug（调度）、Trace（跟踪）、Other（其它）
+					2. 第二段：当前用户
+					2. 第三段：日志记录日期时间(精确到毫秒)，例如：[2016-09-19 09:00:17.9785]
+					3. 第四段：当前线程的名称
+					4. 第五段：所在的类文件名,表示日志是由哪个模块（或类）记录的
+					5. 第六段：所在类:行号
+				3. 日志内容可以为任意内容可包含换行，例如：可能是JSON、XML、HTML、普通文本    		
+         -->
+        <property name="pattern_debug_info_warn">[%p];[%X{user}];%d{yyyy-MM dd HH:mm:ss.SSS};[%t];%F;%c{1}:%L%n %msg %n %n</property>
+        <property name="pattern_error">[%p];[%X{user}];%d{yyyy-MM dd HH:mm:ss.SSS};[%t];%F;%c{1}:%L%n %msg %n %xEx %n</property>	
+	</properties>
+	
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- //////////////////////////////// Appenders ////////////////////////////////////////////////// -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->		
+
+	<Appenders>
+        <!--在控制台打印日志,输出DEBUG - ERROR级别的到SYSTEM_OUT-->
+		<Console name="DebugConsole" target="SYSTEM_OUT">
+			<PatternLayout pattern="${pattern_debug_info_warn}" />
+			<Filters>
+                <!--设置只输出级别为DEBUG - WARN 的日志-->
+				<ThresholdFilter level="DEBUG" />
+				<ThresholdFilter level="ERROR" onMatch="DENY"
+					onMismatch="NEUTRAL" />
+			</Filters>
+		</Console>
+        
+        <!--在控制台打印日志,输出ERROR级别的到SYSTEM_ERR-->
+		<Console name="ErrorConsole" target="SYSTEM_ERR">
+			<PatternLayout
+				pattern="${pattern_error}" />
+            <!--设置只输出级别为ERROR的日志-->
+			<ThresholdFilter level="ERROR" />
+		</Console> 
+               
+
+        <!--设置级别为INFO日志输出到info.log中-->
+		<RollingFile name="INFO" filename="${logPath}/info.log"
+			filepattern="${logPath}/%d{yyyyMMdd}-%i-info.log.zip">
+			<Filters>
+                <!--设置只输出级别为INFO的日志-->
+				<ThresholdFilter level="INFO" />
+				<ThresholdFilter level="WARN" onMatch="DENY"
+					onMismatch="NEUTRAL" />
+			</Filters>
+			<PatternLayout
+				pattern="${pattern_debug_info_warn}" />
+			<Policies>
+                <!--设置每天打包日志一次-->
+				<TimeBasedTriggeringPolicy interval="1"
+					modulate="true" />
+                <!--设置日志文件满50MB后打包
+                	<SizeBasedTriggeringPolicy size="50 MB" /> -->
+			</Policies>
+			
+            <!-- 保留20份, 这里的20指代上面filepattern参数中配置的 %i,这里按照filepattern里的配置就是一天最多允许存在20个同类型文件-->
+            <DefaultRolloverStrategy max="20">
+            	<!-- 删除逾期10天的文件 ; 参考: https://blog.csdn.net/lqzkcx3/article/details/79205979 -->
+				<Delete basePath="${logPath}/" maxDepth="1">
+					<IfFileName glob="*.log.zip" />
+					<IfLastModified age="10d" />
+				</Delete>            
+            </DefaultRolloverStrategy>			
+		</RollingFile>
+
+        <!--设置级别为WARN日志输出到warn.log中-->
+		<RollingFile name="WARN" filename="${logPath}/warn.log"
+			filepattern="${logPath}/%d{yyyyMMdd}-%i-warn.log.zip">
+			<Filters>
+                <!--设置只输出级别为WARN的日志-->
+				<ThresholdFilter level="WARN" />
+				<ThresholdFilter level="ERROR" onMatch="DENY"
+					onMismatch="NEUTRAL" />
+			</Filters>
+			<PatternLayout
+				pattern="${pattern_debug_info_warn}" />
+			<Policies>
+                <!--设置每天打包日志一次-->
+				<TimeBasedTriggeringPolicy interval="1"
+					modulate="true" />
+                <!--设置日志文件满50MB后打包
+                <SizeBasedTriggeringPolicy size="50 MB" /> -->
+			</Policies>
+			<DefaultRolloverStrategy max="20" />
+		</RollingFile>
+
+        <!--设置级别为ERROR日志输出到error.log中-->
+		<RollingFile name="ERROR" filename="${logPath}/error.log"
+			immediateFlush="true" filepattern="${logPath}/%d{yyyyMMdd}-%i-error.log.zip">
+            <!--设置只输出级别为ERROR的日志-->
+			<ThresholdFilter level="ERROR" />
+			<PatternLayout
+				pattern="${pattern_error}" />
+			<Policies>
+                <!--设置每天打包日志一次-->
+				<TimeBasedTriggeringPolicy interval="1"
+					modulate="true" />
+                <!--设置日志文件满50MB后打包
+                <SizeBasedTriggeringPolicy size="50 MB" /> -->
+			</Policies>
+			<DefaultRolloverStrategy max="20" />
+		</RollingFile>
+             
+      	<!-- sql日志 -->
+		<RollingFile name="sql_appender" immediateFlush="true"
+			fileName="${logPath}/sql.log" filePattern="${logPath}/%d{yyyyMMdd}-%i-sql.log.zip">
+			<PatternLayout>
+				<pattern>${pattern_debug_info_warn}</pattern>
+			</PatternLayout>
+			<Policies>
+				<TimeBasedTriggeringPolicy interval="1"
+					modulate="true" />
+                <!-- 设置日志文件满50MB后打包 -->
+				<SizeBasedTriggeringPolicy size="50 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="30" />
+		</RollingFile>        
+            
+            
+        <!-- ////////////////////// Special Appender //////////////////////////// --> 
+        
+        <!--设置通过邮件发送日志信息
+        <SMTP name="Mail" subject="XXXXSaaS系统正式版异常信息" to="yong.shi@lengjing.info" from="message@lengjing.info" 
+              smtpUsername="message@lengjing.info" smtpPassword="LENG****1234" smtpHost="mail.lengjing.info" smtpDebug="false" 
+              smtpPort="25" bufferSize="10">
+            <PatternLayout pattern="${pattern_debug_info_warn}" />
+        </SMTP>
+        -->
+
+	</Appenders>
+
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<!-- ////////////////////////////////  Loggers  ////////////////////////////////////////////////// -->
+	<!-- ///////////////////////////////////////////////////////////////////////////////////////////// -->
+	<Loggers>
+    	<!-- 如果要启用SQL调试, 将level属性由INFO修改为DEBUG即可 -->
+		<root level="DEBUG">
+			<appender-ref ref="DebugConsole" />
+			<appender-ref ref="ErrorConsole" level="ERROR" />
+			<appender-ref ref="INFO" />
+			<appender-ref ref="WARN" />
+			<appender-ref ref="ERROR" />
+		</root>    
+
+    	<!-- 
+        <logger name="com" level="INFO" additivity="true">
+            <appender-ref ref="INFO" />
+            <appender-ref ref="WARN" />
+            <appender-ref ref="ERROR" />
+            <appender-ref ref="Mail" /> 
+        </logger>
+      	-->  
+      	
+      	<!-- ////////////////////////     Special Logger   /////////////////////////////// -->
+      	
+
+		<!-- ////////////////////////     二方库日志系统       /////////////////////////////// -->
+<!-- 
+      	<logger name="com.kanq.extend" level="DEBUG" additivity="false" >
+			<appender-ref ref="DebugConsole" />
+		</logger> 	
+      	<logger name="com.kanq.qd" level="DEBUG" additivity="false" >
+			<appender-ref ref="DebugConsole" />
+		</logger>		   	
+-->
+        <!-- ////////////////////////     第三方日志系统        /////////////////////////////// -->
+     	
+     	<!-- log4j2 
+     	<logger name="org.apache.logging.log4j" level="DEBUG"/>     	      
+	 	-->
+	 
+        <!-- druid配置;注意搭配DataSourceFactory类中的配置 
+        	   关于这里的name命名,参见druid中的Slf4jLogFilter类. 实质是在其基类LogFilter中
+        -->
+		<logger name="druid.sql.Statement" level="DEBUG" additivity="false">
+			<appender-ref ref="sql_appender" />
+		</logger>
+          
+        <!-- 观察打印出来的日志,发现这个的作用似乎不是很大
+        <logger name="druid.sql.ResultSet" level="debug" additivity="false">
+            <appender-ref ref="sql_appender"/>
+        </logger>
+         -->
+        <!-- 只输出错误相关信息;不设置的话会在控制台debug信息 -->
+		<logger name="druid.sql.Connection" level="ERROR" additivity="false">
+			<appender-ref ref="ErrorConsole" />
+		</logger>       
+		
+		 
+        <!-- MyBatis Loggers;
+        		1. 必须在mybatis的配置文件setting节点中设置logImpl
+        		2. level确实有效, 具体测试是在 org.apache.ibatis.transaction.jdbc.JdbcTransaction:120	
+        		3. 但org.apache.ibatis.executor.BatchExecutor类中的doQuery方法的日志又是DEBUG级别
+          --> 
+        <!-- 因为JYXT使用的是Apache的dbcp数据库连接池, 所以我们不能使用druid内置的sql语句日志功能;故转而使用Mybatis内置的 -->
+        <!-- 这里的使用需要Mybatis配置文件的支持, 具体是settings节点中增加logPrefix属性的配置, 其属性值就是下面logger的name属性值; 可参见mybatis配置文件的settings节点-->
+		<logger name="org.apache.ibatis" level="DEBUG" additivity="false">
+			<appender-ref ref="sql_appender" />
+		</logger>  
+		
+		<!-- structs2 -->					 
+		<logger name="org.apache.struts2" level="ERROR" additivity="true" />
+		<logger name="com.opensymphony.xwork2" level="ERROR"
+			additivity="true" />  
+			
+		<!-- spring -->
+		<logger name="org.springframework" level="ERROR"/>			 	 
+
+		<!-- quartz 内部直接使用slf4j的LoggerFactory.getLogger(getClass())来获取log实例
+		 -->
+		<logger name="org.quartz" level="ERROR" additivity="false" />   	 
+		
+        <!-- log4jdbc option  log the jdbc results as a table -->
+		<logger name="jdbc.resultsettable" level="debug" additivity="false">
+			<appender-ref ref="DebugConsole" />
+		</logger>
+ 		
+        <!-- Alibaba Loggers 
+        <logger name="com.alibaba" level="info"/>
+        <logger name="com.alibaba.druid" level="info"/>
+ 		-->
+
+
+	</Loggers>
+</Configuration>
